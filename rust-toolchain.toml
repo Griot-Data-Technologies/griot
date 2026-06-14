@@ -1,0 +1,6 @@
+# GriotQL builds on recent stable Rust. The crate's MSRV floor is declared as
+# `rust-version = "1.88"` in Cargo.toml (datafusion 47 + getrandom 0.4 need
+# edition2024 support, stable >= 1.85; serde_with / time need >= 1.88).
+[toolchain]
+channel = "stable"
+components = ["rustfmt", "clippy"]

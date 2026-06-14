@@ -1,0 +1,150 @@
+# GriotQL — a privacy-and-contract-enforcing SQL engine.
+#
+# Apache DataFusion 47 + Arrow 55, extended with native contract enforcement
+# implemented as DataFusion optimizer rules and physical operators. Every query
+# plan can be rewritten to inject, before results are returned: a contract
+# check, a row filter, column masking, differential-privacy noise, and an
+# optional signed attestation envelope.
+#
+# This is a standalone snapshot copied out of the Griot Cloud platform; see
+# README.md (Provenance) and CHANGELOG.md for the exact source commit.
+
+[package]
+name = "griot"
+version = "0.1.0"
+edition = "2021"
+# datafusion v47 transitively requires getrandom 0.4 (edition2024, stable >=1.85),
+# serde_with 3.20 and time 0.3.47 (stable >=1.88), and uuid >=1.16. Pin a recent
+# stable toolchain; see rust-toolchain.toml.
+rust-version = "1.88"
+description = "GriotQL — a privacy-and-contract-enforcing SQL engine (DataFusion with governance compiled into the query plan)"
+# License: TBD (intended for open-source release). See README.md.
+
+[features]
+# Lance columnar format support. Requires protoc at build time (lance-encoding
+# protos), so it is OFF by default — a plain `cargo build` works everywhere.
+# Build the columnar path with: cargo build --features lance
+lance = ["dep:lance", "dep:lance-core", "dep:lance-io", "dep:object_store", "dep:async-trait"]
+default = []
+
+[lib]
+name = "griot"
+path = "src/lib.rs"
+
+[dependencies]
+# DataFusion: the query execution substrate.
+datafusion = "47"
+
+# Async runtime.
+tokio = { version = "1.40", features = ["full"] }
+
+# Serialization: contract bundles and config are JSON.
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Error handling.
+thiserror = "1.0"
+anyhow = "1.0"
+
+# Structured logging.
+tracing = "0.1"
+
+# UUID for correlation IDs (the "serde" feature is required by AuditRecord).
+uuid = { version = "1.11", features = ["v4", "serde"] }
+
+# Arrow/Parquet for in-memory and parquet-backed tables + result formatting.
+arrow = "55"
+parquet = { version = "55", features = ["arrow", "async"] }
+
+# Bytes: ContractBundleHandle.raw_bytes (public API).
+bytes = "1.9"
+
+# Cryptography: SHA-256 for query_sha and masking hash; hex for digests.
+sha2 = "0.10"
+hex = "0.4"
+
+# Hashing: xxhash-64 for result_hash in AttestationExec.
+xxhash-rust = { version = "0.8", features = ["xxh64"] }
+
+# Random number generation: Laplace noise in LaplaceNoiseExec.
+rand = "0.8"
+rand_distr = "0.4"
+
+# Timestamps: UTC timestamps in AttestationEnvelope.
+chrono = { version = "0.4", features = ["serde"] }
+
+# Async streams: .then() on SendableRecordBatchStream.
+futures = "0.3"
+
+# Base64 encoding for result formatting / attestation payloads.
+base64 = "0.22"
+
+# LRU cache for QueryCache.
+lru = "0.12"
+
+# ─── Optional: Lance columnar format (feature = "lance") ──────────────────────
+# Lance datasets register through the storaged byte-read path; object_store is
+# the IO backend and async-trait is needed by the TableProvider impl.
+lance = { version = "6", optional = true }
+lance-core = { version = "6", optional = true }
+lance-io = { version = "6", optional = true }
+object_store = { version = "0.11", features = ["aws"], optional = true }
+async-trait = { version = "0.1", optional = true }
+
+[dev-dependencies]
+tokio-test = "0.4"
+tempfile = "3.12"
+# Compile-fail tests for sealed-trait enforcement.
+trybuild = "1.0"
+
+# ─── Lint configuration ──────────────────────────────────────────────────────
+# uninlined_format_args: the engine source predates clippy >=1.88's inline-args
+# lint. The format! calls are correct, just not inlined.
+[lints.clippy]
+uninlined_format_args = "allow"
+
+# ─── Explicit test targets ────────────────────────────────────────────────────
+# Cargo auto-discovery only finds *.rs directly under tests/. The unit and
+# integration suites live in subdirectories, so they are listed explicitly.
+
+[[test]]
+name = "unit_contract_check"
+path = "tests/unit/contract_check.rs"
+
+[[test]]
+name = "unit_row_filter"
+path = "tests/unit/row_filter.rs"
+
+[[test]]
+name = "unit_masking"
+path = "tests/unit/masking.rs"
+
+[[test]]
+name = "unit_dp_noise"
+path = "tests/unit/dp_noise.rs"
+
+[[test]]
+name = "integration_four_rule_pipeline"
+path = "tests/integration/four_rule_pipeline.rs"
+
+# ─── Physical operator tests (tests/unit/wave9/) ──────────────────────────────
+
+[[test]]
+name = "wave9_physical_contract_approved"
+path = "tests/unit/wave9/physical_contract_approved.rs"
+
+[[test]]
+name = "wave9_physical_row_filter"
+path = "tests/unit/wave9/physical_row_filter.rs"
+
+[[test]]
+name = "wave9_physical_masking"
+path = "tests/unit/wave9/physical_masking.rs"
+
+[[test]]
+name = "wave9_physical_dp_noise"
+path = "tests/unit/wave9/physical_dp_noise.rs"
+
+[[test]]
+name = "wave9_attestation_exec"
+path = "tests/unit/wave9/attestation_exec.rs"
