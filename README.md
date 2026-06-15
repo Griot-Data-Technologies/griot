@@ -109,6 +109,37 @@ A clean checkout builds and tests with **only Rust + cargo** — no `protoc`, no
 
 ---
 
+## Python (`pip install`, no Rust required)
+
+GriotQL ships Python bindings (PyO3 + maturin). The published wheel is a native
+extension — **using it needs no Rust toolchain**, just `pip`.
+
+```bash
+pip install griotql      # (wheels built by .github/workflows/python-wheels.yml)
+```
+
+```python
+import griotql
+
+engine = griotql.Engine.from_json_contracts_dir("./contracts")
+table = engine.query(
+    'SELECT email, region FROM "sales/orders/v1"',
+    griotql.Caller("user:bob", "analytics", "globex"),
+)
+print(table)               # a pyarrow.Table — email masked for the outside tenant
+```
+
+Build the wheel locally with [maturin](https://www.maturin.rs/):
+
+```bash
+cd bindings/python
+maturin develop --release   # builds + installs into the active venv
+pytest
+```
+
+See [`bindings/python/`](bindings/python/). (Rust is needed to *build* the wheel —
+which we/CI do once per platform — never to *use* it.)
+
 ## Public API (open-source path)
 
 ```rust

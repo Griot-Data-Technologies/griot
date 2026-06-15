@@ -1,0 +1,21 @@
+# Python bindings for GriotQL (PyO3 + maturin).
+#
+# Builds a `pip install`-able wheel exposing the open-source engine to Python.
+# Self-contained workspace so it does not entangle the parent crate.
+
+[package]
+name = "griotql-python"
+version = "0.2.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[lib]
+name = "_native"
+crate-type = ["cdylib"]
+
+[dependencies]
+griot = { path = "../.." }
+pyo3 = { version = "0.23", features = ["extension-module", "abi3-py39"] }
+tokio = { version = "1", features = ["rt-multi-thread"] }

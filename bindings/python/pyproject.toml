@@ -1,0 +1,21 @@
+[build-system]
+requires = ["maturin>=1.5,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "griotql"
+version = "0.2.0"
+description = "GriotQL — a contract-resolving, privacy-enforcing SQL engine"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "TBD" }
+keywords = ["sql", "datafusion", "data-contract", "privacy", "governance", "arrow"]
+dependencies = ["pyarrow>=14"]
+
+[project.urls]
+Source = "https://github.com/Griot-Data-Technologies/griot"
+
+[tool.maturin]
+module-name = "griotql._native"
+python-source = "python"
+features = ["pyo3/extension-module"]

@@ -1,6 +1,16 @@
 # Rust build artifacts
 /target
+**/target
 **/*.rs.bk
+
+# Python / maturin
+.venv*/
+**/__pycache__/
+*.so
+*.pyd
+bindings/python/dist/
+*.egg-info/
+.pytest_cache/
 
 # Backtrace / debug
 *.pdb
