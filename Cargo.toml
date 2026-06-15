@@ -24,7 +24,11 @@ description = "GriotQL — a privacy-and-contract-enforcing SQL engine (DataFusi
 # Lance columnar format support. Requires protoc at build time (lance-encoding
 # protos), so it is OFF by default — a plain `cargo build` works everywhere.
 # Build the columnar path with: cargo build --features lance
-lance = ["dep:lance", "dep:lance-core", "dep:lance-io", "dep:object_store", "dep:async-trait"]
+lance = ["dep:lance", "dep:lance-core", "dep:lance-io", "dep:object_store"]
+# Platform adapter: consume T03's signed contract bundle over HTTP and verify
+# its ECDSA P-256 signature. Off by default so the OSS build needs no HTTP/crypto
+# stack; enable with `cargo build --features platform`.
+platform = ["dep:reqwest", "dep:p256"]
 default = []
 
 [lib]
@@ -89,7 +93,17 @@ lance = { version = "6", optional = true }
 lance-core = { version = "6", optional = true }
 lance-io = { version = "6", optional = true }
 object_store = { version = "0.11", features = ["aws"], optional = true }
-async-trait = { version = "0.1", optional = true }
+async-trait = "0.1"
+
+# ─── Optional: platform adapter (feature = "platform") ────────────────────────
+# T03 signed-bundle fetch over HTTP + ECDSA P-256 signature verification.
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"], optional = true }
+p256 = { version = "0.13", features = ["ecdsa"], optional = true }
+
+# The platform example only builds with the `platform` feature.
+[[example]]
+name = "platform_bundle"
+required-features = ["platform"]
 
 [dev-dependencies]
 tokio-test = "0.4"

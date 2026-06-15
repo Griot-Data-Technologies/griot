@@ -36,11 +36,21 @@ jobs:
       - name: build (release)
         run: cargo build --release
 
+      # The platform adapter (T03 signed-bundle source) is feature-gated.
+      - name: clippy (platform)
+        run: cargo clippy --all-targets --features platform -- -D warnings
+
+      - name: test (platform)
+        run: cargo test --features platform
+
       # Sanity-check that the examples actually run with no external services.
       - name: run examples
         run: |
-          for ex in plain_sql column_masking row_filter dp_noise; do
+          for ex in plain_sql column_masking row_filter dp_noise contract_query; do
             echo "::group::cargo run --example $ex"
             cargo run --example "$ex"
             echo "::endgroup::"
           done
+          echo "::group::cargo run --example platform_bundle --features platform"
+          cargo run --example platform_bundle --features platform
+          echo "::endgroup::"

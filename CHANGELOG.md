@@ -3,6 +3,30 @@
 All notable changes to this project are documented here. The format is loosely
 based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.2.0] — contract resolution spine + platform adapter
+
+Turned the engine from "mask a hand-fed batch" into "query a contract": you now
+name a contract-bound dataset in SQL and get governed rows.
+
+- **Contract resolution spine.** `SELECT … FROM "<dataset-uri>"` resolves the
+  governing contract for the caller and the physical data location, then applies
+  the contract's masking, row filtering and DP noise inside the query plan.
+  New modules: `policy` (`ResolvedPolicy` — the engine-agnostic enforcement
+  primitive), `contract_source` (`ContractSource` + `JsonContractSource`),
+  `binding` (`BindingResolver` + local Parquet loader), `contract_table_provider`
+  (`ContractTableProvider`), `catalog` (lazy DataFusion `SchemaProvider`/
+  `CatalogProvider`), and `engine` (`GriotEngine`).
+- **Open-source path.** A simple JSON contract format + local Parquet — no
+  services, no `protoc`. See `docs/CONTRACT-FORMAT.md`.
+- **Platform adapter** (`--features platform`). `PlatformBundleSource` fetches a
+  Griot Cloud T03 signed bundle over HTTP, verifies its ECDSA-P256 signature
+  (canonical hashing mirrored from T03's `bundle-signer`), and maps it to the
+  same `ResolvedPolicy`. Exercised offline against the real committed bundle
+  fixture.
+- New examples: `contract_query` (standalone) and `platform_bundle` (platform).
+- Docs: `docs/USAGE.md`, `docs/CONTRACT-FORMAT.md`, `docs/ARCHITECTURE.md`.
+- The pre-existing enforcement operators are reused unchanged.
+
 ## [0.1.0] — initial snapshot
 
 Initial standalone snapshot of the GriotQL query engine, **copied** out of the

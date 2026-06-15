@@ -627,3 +627,31 @@ pub mod long_running_pool_manager;
 /// Only compiled when the `lance` feature is enabled (requires protoc at build time).
 #[cfg(feature = "lance")]
 pub mod lance_table;
+
+// ─── Contract resolution spine ────────────────────────────────────────────────
+// Turns a dataset reference + a caller into governed query execution: a contract
+// source produces a `ResolvedPolicy`, a binding resolver locates the data, and a
+// DataFusion catalog wraps the raw scan in the enforcement operators above.
+
+/// The engine-agnostic enforcement primitive (`ResolvedPolicy`) every contract
+/// source produces and the engine executes.
+pub mod policy;
+
+/// Mapping a dataset reference to its physical data (`BindingResolver`).
+pub mod binding;
+
+/// Contract sources: `ContractSource` + the open-source `JsonContractSource`.
+pub mod contract_source;
+
+/// `ContractTableProvider`: a DataFusion table whose every scan is governed.
+pub mod contract_table_provider;
+
+/// The DataFusion catalog that resolves `SELECT * FROM "<dataset-uri>"`.
+pub mod catalog;
+
+/// The high-level, contract-resolving `GriotEngine` query API.
+pub mod engine;
+
+/// Platform adapter: consume T03's signed contract bundle (feature `platform`).
+#[cfg(feature = "platform")]
+pub mod platform;

@@ -1,0 +1,224 @@
+{
+  "bundle": {
+    "manifest": {
+      "contract_id": "demo_dataset_users_v1",
+      "contract_version": 1,
+      "compiled_at_unix_ms": 1777945011709
+    },
+    "wasm_modules": [
+      {
+        "name": "check-email-rfc5322",
+        "bytes": [
+          71,
+          82,
+          73,
+          79,
+          84,
+          45,
+          87,
+          65,
+          83,
+          77,
+          45,
+          83,
+          84,
+          85,
+          66,
+          58,
+          183,
+          253,
+          70,
+          204,
+          25,
+          55,
+          175,
+          96,
+          197,
+          210,
+          137,
+          147,
+          106,
+          190,
+          55,
+          174,
+          213,
+          59,
+          96,
+          109,
+          223,
+          123,
+          64,
+          27,
+          174,
+          58,
+          153,
+          93,
+          133,
+          20,
+          67,
+          234
+        ]
+      },
+      {
+        "name": "check-country-iso3166a2",
+        "bytes": [
+          71,
+          82,
+          73,
+          79,
+          84,
+          45,
+          87,
+          65,
+          83,
+          77,
+          45,
+          83,
+          84,
+          85,
+          66,
+          58,
+          61,
+          110,
+          166,
+          116,
+          97,
+          230,
+          40,
+          204,
+          166,
+          89,
+          126,
+          57,
+          160,
+          149,
+          99,
+          210,
+          130,
+          152,
+          190,
+          221,
+          207,
+          78,
+          229,
+          255,
+          128,
+          166,
+          109,
+          221,
+          45,
+          148,
+          227,
+          137
+        ]
+      },
+      {
+        "name": "check-mrr-usd-non-negative",
+        "bytes": [
+          71,
+          82,
+          73,
+          79,
+          84,
+          45,
+          87,
+          65,
+          83,
+          77,
+          45,
+          83,
+          84,
+          85,
+          66,
+          58,
+          23,
+          222,
+          216,
+          194,
+          25,
+          12,
+          15,
+          36,
+          163,
+          143,
+          12,
+          43,
+          118,
+          118,
+          191,
+          209,
+          8,
+          6,
+          67,
+          210,
+          254,
+          239,
+          174,
+          103,
+          139,
+          205,
+          187,
+          155,
+          35,
+          151,
+          26,
+          251
+        ]
+      }
+    ],
+    "rego_bundles": [
+      {
+        "name": "policy-purpose-gate",
+        "source": "# T03 contract: demo-tenant-a/demo_dataset_users_v1 — purpose gate\n# Allowed purposes: marketplace-listing, analytics\npackage griot.contracts.demo_dataset_users_v1.purpose_gate\n\nimport future.keywords\n\ndefault allow := false\n\nallow if {\n    input.declared_purpose == \"marketplace-listing\"\n}\n\nallow if {\n    input.declared_purpose == \"analytics\"\n}\n"
+      },
+      {
+        "name": "policy-pii-email-masking",
+        "source": "# T03 contract: demo-tenant-a/demo_dataset_users_v1 — PII masking for email column\n# Non-owner tenants receive hash-on-read for the email column.\npackage griot.contracts.demo_dataset_users_v1.pii_masking\n\nimport future.keywords\n\ndefault apply_hash := false\n\napply_hash if {\n    input.caller_tenant_id != \"demo-tenant-a\"\n}\n"
+      },
+      {
+        "name": "policy-marketplace-publishable",
+        "source": "# T03 contract: demo-tenant-a/demo_dataset_users_v1 — marketplace publishable\n# This dataset may be listed on the Griot data marketplace (K05).\npackage griot.contracts.demo_dataset_users_v1.marketplace\n\nimport future.keywords\n\ndefault publishable := true\n\n# Tier must be silver or gold (lifecycle.tier).\npublishable if {\n    input.tier == \"silver\"\n}\n\npublishable if {\n    input.tier == \"gold\"\n}\n"
+      }
+    ],
+    "sql_templates": [
+      {
+        "name": "row-filter-owner-read",
+        "template": "SELECT user_id, email, country, signup_at, mrr_usd FROM {table} WHERE 1=1"
+      },
+      {
+        "name": "row-filter-non-owner-read",
+        "template": "SELECT user_id, sha256_hex(email) AS email, country, signup_at, mrr_usd FROM {table} WHERE 1=1"
+      }
+    ],
+    "resolution_map": {
+      "entries": [
+        {
+          "dataset_id": "demo-tenant-a/demo_dataset_users_v1",
+          "operation": "read",
+          "check_ref": "policy-purpose-gate"
+        },
+        {
+          "dataset_id": "demo-tenant-a/demo_dataset_users_v1",
+          "operation": "write",
+          "check_ref": "policy-purpose-gate"
+        },
+        {
+          "dataset_id": "demo-tenant-a/demo_dataset_users_v1",
+          "operation": "pii-read",
+          "check_ref": "policy-pii-email-masking"
+        },
+        {
+          "dataset_id": "demo-tenant-a/demo_dataset_users_v1",
+          "operation": "marketplace-publish",
+          "check_ref": "policy-marketplace-publishable"
+        }
+      ]
+    }
+  },
+  "signature_hex": "3046022100ad6538f5cd06d8e903066180413d9e98316c47c809b455d561e76a9e3e639e5e022100a408e8e9722ee93a19c643a102d9c9362d9241ea683ea0fb7c36dbe4a3c92feb",
+  "metadata": {
+    "bundle_hash_hex": "62dd27ec24c748ae8892840f2b1cfc8e61210581acf2d84168ad67442097e227",
+    "signed_at_unix_ms": 1777945011711,
+    "key_generation": 1
+  }
+}
