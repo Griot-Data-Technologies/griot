@@ -608,10 +608,14 @@ pub mod physical;
 
 /// T04 storaged byte-read Unix domain socket client.
 /// The engine's ONLY data-access path — all reads route through T04.
+/// Unix-only (uses `tokio::net::UnixStream`); not used by the contract spine.
+#[cfg(unix)]
 pub mod storaged_client;
 
 /// T05 GDCP Notary attestation-signing client (opcode 0x42).
 /// Replaces the SHA-256 placeholder in AttestationExec with real ES256 JWS.
+/// Unix-only (uses `tokio::net::UnixStream`); not used by the contract spine.
+#[cfg(unix)]
 pub mod t05_client;
 
 /// Result formatter: Arrow IPC / Parquet / newline-delimited JSON.
