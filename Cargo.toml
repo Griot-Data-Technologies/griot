@@ -141,6 +141,13 @@ path = "tests/unit/dp_noise.rs"
 name = "integration_four_rule_pipeline"
 path = "tests/integration/four_rule_pipeline.rs"
 
+# Task #26 — governed masking of a NUMERIC PII column through the full
+# DataFusion logical→physical planner (reproduces + guards the live
+# ProjectionPushdown schema-mismatch the physical unit tests can't see).
+[[test]]
+name = "integration_governed_numeric_mask"
+path = "tests/integration/governed_numeric_mask.rs"
+
 # ─── Physical operator tests (tests/unit/wave9/) ──────────────────────────────
 
 [[test]]

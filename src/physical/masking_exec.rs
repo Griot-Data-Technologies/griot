@@ -206,6 +206,30 @@ impl MaskingExec {
     }
 }
 
+/// Compute the masked output schema for a governed scan of `input_schema` under
+/// the masking policy in `bundle`, WITHOUT constructing a `MaskingExec`.
+///
+/// This is the single source of truth for "what type does each column become
+/// after masking", shared by `MaskingExec` (its physical output schema) and
+/// `ContractTableProvider::schema()` (the *logical* table schema DataFusion
+/// plans against).  They MUST agree, or DataFusion's `ProjectionPushdown`
+/// optimizer rejects the plan with a schema mismatch (a string-producing mask on
+/// a numeric column changes Int64→Utf8; the logical schema must reflect that).
+///
+/// (Task #26.)
+///
+/// # Errors
+///
+/// Propagates `parse_masking_bundle` failures (malformed bundle / unknown
+/// policy) so a bad policy fails loud rather than silently mis-typing a column.
+pub fn masked_schema_for_bundle(
+    input_schema: &SchemaRef,
+    bundle: &ContractBundleHandle,
+) -> Result<SchemaRef, PhysicalError> {
+    let column_policies = parse_masking_bundle(bundle)?;
+    Ok(masked_output_schema(input_schema, &column_policies))
+}
+
 /// Parse the masking bundle.
 ///
 /// # Finding 2 fix

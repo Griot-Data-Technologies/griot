@@ -30,7 +30,7 @@ use datafusion::physical_plan::ExecutionPlan;
 
 use crate::physical::contract_approved_exec::ContractApprovedExec;
 use crate::physical::laplace_noise_exec::LaplaceNoiseExec;
-use crate::physical::masking_exec::MaskingExec;
+use crate::physical::masking_exec::{masked_schema_for_bundle, MaskingExec};
 use crate::physical::row_filter_exec::RowFilterExec;
 use crate::physical::PhysicalError;
 use crate::policy::ResolvedPolicy;
@@ -43,16 +43,34 @@ pub struct ContractTableProvider {
     bundle: ContractBundleHandle,
     tenant_id: String,
     has_dp: bool,
+    /// The GOVERNED table schema DataFusion plans against.
+    ///
+    /// Equal to the inner schema except that any column masked with a
+    /// string-producing policy (hash/tokenize/partial) on a non-string source is
+    /// retyped to `Utf8` — matching the physical `MaskingExec` output. The
+    /// logical schema MUST match the physical scan schema, otherwise DataFusion's
+    /// `ProjectionPushdown` rejects the plan with a "Schema mismatch" error.
+    /// (Task #26.)
+    governed_schema: SchemaRef,
 }
 
 impl ContractTableProvider {
     /// Wrap `inner` so it is governed by `policy`.
     pub fn new(inner: Arc<dyn TableProvider>, policy: &ResolvedPolicy) -> Self {
+        let bundle = policy.to_bundle_handle();
+        // Compute the governed (masked) schema up front so `schema()` and the
+        // physical `MaskingExec` agree on masked-column types. On a bundle-parse
+        // failure (which `MaskingExec::new` will also hit and surface loudly at
+        // scan time), fall back to the inner schema rather than panicking here.
+        let inner_schema = inner.schema();
+        let governed_schema =
+            masked_schema_for_bundle(&inner_schema, &bundle).unwrap_or(inner_schema);
         Self {
             inner,
-            bundle: policy.to_bundle_handle(),
+            bundle,
             tenant_id: policy.tenant_id.clone(),
             has_dp: policy.has_dp(),
+            governed_schema,
         }
     }
 }
@@ -86,7 +104,9 @@ impl TableProvider for ContractTableProvider {
     }
 
     fn schema(&self) -> SchemaRef {
-        self.inner.schema()
+        // The GOVERNED schema: masked non-string columns are retyped to Utf8 so
+        // the logical plan matches the physical governed scan (Task #26).
+        self.governed_schema.clone()
     }
 
     fn table_type(&self) -> TableType {
